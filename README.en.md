@@ -9,6 +9,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 <p align="center">
   <img src="docs/preview/balance-wide.png" alt="dsh-balance-monitor in the sidebar footer" width="280">
   <img src="docs/preview/balance-rail.png" alt="dsh-balance-monitor collapsed to the rail" width="56">
+  <img src="docs/preview/settings.png" alt="Balance Monitor settings page" width="280">
 </p>
 
 ## Features

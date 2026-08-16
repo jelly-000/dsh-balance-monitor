@@ -9,6 +9,7 @@ DeepSeek 账户余额，直接显示在 dsh 侧边栏底部。
 
 <p align="center">
   <img src="docs/preview/balance-wide.png" alt="侧边栏底部余额卡片" width="280">
+  <img src="docs/preview/settings.png" alt="余额监控设置页" width="280">
 </p>
 
 ## 功能
