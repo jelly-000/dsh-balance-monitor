@@ -1,7 +1,7 @@
 {
   "name": "dsh-balance-monitor",
-  "version": "0.1.2",
-  "description": "DeepSeek account balance, remaining-ratio bar, and today's spend in the dsh sidebar footer.",
+  "version": "0.3.0",
+  "description": "DeepSeek account balance, remaining-ratio bar, today's spend, and rolling-12-month token/cost totals in the dsh sidebar footer. Local build: 60s balance polling, page-load usage refresh, and a settings page (poll interval / low-balance threshold / platform login token).",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -24,6 +24,7 @@
   },
   "files": [
     "lib",
+    "docs",
     "cordis.patch.yml"
   ],
   "dsh": {

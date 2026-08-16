@@ -15,12 +15,15 @@ DeepSeek 账户余额，直接显示在 dsh 侧边栏底部。
 
 | 功能 | 实现 |
 |---|---|
-| 实时余额 | 服务端调用 `GET https://api.deepseek.com/user/balance`，使用 `$DSH_HOME/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`（环境变量优先） |
+| 余额 | 服务端调用 `GET https://api.deepseek.com/user/balance`，使用 `$DSH_HOME/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`（环境变量优先） |
 | 今日花费 | 当天首次成功查询的余额记为基线（持久化在 `$DSH_HOME/storages/balance-monitor.json`）；花费 = `max(0, 基线 − 当前)`。充值不会让数字变负 |
+| 自动刷新 | 余额每 60 秒轮询一次（真实联网），间隔可在设置页调整为 5–3600 秒；挂载时先显示缓存，随后立即刷新一次 |
+| 近一年用量 | 每次刷新页面自动查询一次，也可点卡片上的 ↻ 手动刷新；服务端用平台登录 Token（环境变量 > 插件设置页 > `.credentials.yaml`）逐月调用开放平台 `usage/amount` + `usage/cost` 私有接口，汇总近 12 个自然月的 token 消耗与费用，缓存到 `$DSH_HOME/storages/balance-usage.json` |
+| 设置页 | dsh 设置列表新增「余额监控」页：自动刷新间隔、余额提醒阈值、平台登录 Token（含 `sk-` API Key 拦截、最小长度校验、测试前先保存） |
 | 比例条 | 当前余额 ÷ 当日基线，蓝 → 琥珀 → 红 三档渐降 |
-| 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack |
+| 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack；设置页注册在 `settings.section` |
 | 折叠态 | 收起后变为 36px 圆形，显示紧凑金额 + tooltip |
-| 健壮性 | 60s 轮询 + 切回标签页时刷新；上游失败时保留上次数据（变淡标记 stale），不闪错误 |
+| 健壮性 | 上游失败时保留上次数据（变淡标记 stale），不闪错误 |
 
 ## 安装
 
@@ -42,10 +45,16 @@ dsh plugin --profile web add dsh-balance-monitor
 
 一个插件行同时承担两种角色（`dsh.bundle` patch + `dsh.client` 浏览器注册表声明）：
 
-- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册 `/balance` RPC 通道（loopback 信任围栏）。每次调用读取 API key、查询余额 API、折算当日基线，返回 `{ ok, value }`。
-- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 条目。卡片每 60s 轮询一次，标签页重新可见时立即刷新。
+- **服务端半**（`lib/index.js`）—— 在 `ctx.connection` 上注册 `/balance` RPC 通道（loopback 信任围栏），提供 `snapshot`（余额 + 今日花费）、`usage`（近一年用量）与 `config`（插件设置）三个端点。每次调用读取凭证、查询对应接口，返回 `{ ok, value }`。
+- **浏览器半**（`lib/client.js`）—— 零依赖 classic-script bundle，注册 `sidebar.footer.action` 卡片与 `settings.section` 设置页。卡片挂载时先读缓存，随后立即刷新余额并自动查询一次近一年用量，之后按设置间隔轮询余额；设置页可调整轮询间隔、提醒阈值与平台登录 Token。
 
-状态文件（`$DSH_HOME/storages/balance-monitor.json`）：
+状态与配置文件（`$DSH_HOME/storages/`）：
+
+- `balance-monitor.json` —— 当日基线 / 花费账本；
+- `balance-usage.json` —— 近一年用量缓存；
+- `balance-monitor-config.json` —— 插件设置（轮询间隔、提醒阈值、平台 Token 覆盖）。
+
+示例（`balance-monitor.json`）：
 
 ```json
 {
@@ -59,9 +68,10 @@ dsh plugin --profile web add dsh-balance-monitor
 
 ## 安全说明
 
-- API key 永不离开服务端：浏览器半只能通过 RPC 通道看到余额数字，接触不到 key。
+- API key 与平台 token 永不离开服务端：浏览器半只能通过 RPC 通道看到数字，接触不到凭证。
 - 通道走 `loopback` 信任策略。
-- 无遥测，网络请求仅官方余额接口。
+- 无遥测。网络请求为：余额按设置的间隔轮询、页面加载时的用量查询、手动刷新（官方余额接口 + 开放平台用量接口）。
+- 平台登录 Token 等同账户登录凭证，请勿外传；失效后在 platform.deepseek.com 重新登录获取。
 
 ## 目录结构
 
@@ -69,9 +79,10 @@ dsh plugin --profile web add dsh-balance-monitor
 dsh-balance-monitor/
 ├── package.json        # dsh.bundle (patch) + dsh.client (浏览器注册表)
 ├── cordis.patch.yml    # 插入这一个组合插件行
+├── docs/preview/       # README 截图
 └── lib/
     ├── index.js        # 服务端半：/balance RPC 通道
-    └── client.js       # 浏览器半：侧边栏卡片（手写，无构建）
+    └── client.js       # 浏览器半：侧边栏卡片 + 设置页（手写，无构建）
 ```
 
 ## 开发
