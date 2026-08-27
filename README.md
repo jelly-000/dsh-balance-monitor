@@ -23,7 +23,7 @@
 | 今日花费 | 余额型平台按天记基线（持久化状态文件），花费 = 基线 − 当前；充值不会让数字变负 |
 | 通用自定义 | agent 调 `balance_monitor` 的 `addCustom` 接入任意 OpenAI 兼容厂商（Base URL + 路径 + 字段映射），或直接写 `$DSH_HOME/.credentials.yaml`；无需手填设置面板 |
 | 收起态小圆点 | 侧边栏收成 36px 后每平台一个小圆点（绿/琥珀/红按剩余着色），悬停 tooltip 列出各平台 + 数值 + 当前模式 |
-| 位置 | 注册在官方 `sidebar.footer.action` 槽位 —— 设置上方，零 hack |
+| 位置 | 注册在官方 `sidebar.footer.action` 槽位，位于设置上方 |
 | 健壮性 | 60s 轮询 + 切回标签页立即刷新；上游失败保留上次数据（变淡标 stale），不闪错误 |
 | 双语 | 跟随 dsh 界面语言（`navigator.language`），中/英自动 |
 | 安全 | Key 只留在服务端，浏览器只拿到数字快照 |
