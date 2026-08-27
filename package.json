@@ -1,7 +1,7 @@
 {
   "name": "dsh-balance-monitor",
-  "version": "0.1.2",
-  "description": "DeepSeek account balance, remaining-ratio bar, and today's spend in the dsh sidebar footer.",
+  "version": "0.2.1",
+  "description": "Multi-provider AI account balance / quota / usage monitor with one-click Coding Plan <-> API mode switching, local token measurement, a custom-provider form and a daily token heatmap dashboard in the dsh sidebar footer.",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -9,6 +9,10 @@
     "deepseek-harness",
     "balance",
     "billing",
+    "quota",
+    "coding-plan",
+    "token-usage",
+    "heatmap",
     "sidebar"
   ],
   "type": "module",
