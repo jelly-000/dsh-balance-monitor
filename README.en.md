@@ -3,9 +3,9 @@
 
 # dsh-balance-monitor
 
-Multi-provider AI account **balance / quota / usage** monitor **plus a Token activity dashboard**, living in the dsh sidebar footer.
+Multi-provider AI account balance, quota, and token usage in the dsh sidebar, plus a daily token heatmap.
 
-A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin: the sidebar footer (above Settings) stacks one row per provider with remaining credit, a ratio bar and today's spend. When a vendor sells **both a Coding Plan and pay-as-you-go API**, an inline chip switches the reading with one click. Vendors without a billing API degrade to **measured DSH usage**. And there is a GitHub-contribution-style **daily token heatmap**. All styling uses the official design tokens.
+A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin: the sidebar footer (above Settings) stacks one row per provider with remaining credit, a ratio bar and today's spend. When a vendor sells **both a Coding Plan and pay-as-you-go API**, a dot on the row switches the reading between them. Vendors without a billing API fall back to **measured DSH usage**. A GitHub-contribution-style **daily token heatmap** sits below. Everything uses the official design tokens.
 
 > Why: DeepSeek got pricier and you want to move to GLM & friends, but the original plugin was hard-wired to DeepSeek. This is a **provider adapter registry + dual mode + local measurement**: whatever key you configured shows up, and whatever provider dsh is actually pointed at gets its own row.
 

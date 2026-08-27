@@ -3,9 +3,9 @@
 
 # dsh-balance-monitor
 
-多平台 AI 账户「余额 / 配额 / 用量」一览 + **Token 活动看板**，直接长在 dsh 侧边栏底部。
+多平台 AI 账户余额 / 配额 / 用量一览，外加每日 Token 热力图，直接放在 dsh 侧边栏底部。
 
-一个极简的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) 插件：侧边栏底部（设置上方）**按平台堆叠**显示剩余额度、剩余比例条、已用/今日花费；同一个厂商**同时提供 Coding Plan（订阅套餐）和 API 按量**时，行内一键切换口径；没开放余额接口的厂商自动退化成 **DSH 本地实测用量**；再配一个 GitHub 贡献墙样式的 **Token 热力图看板**。样式全用官方设计令牌，克制内敛。
+一个 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) 插件：侧边栏底部（设置上方）**按平台堆叠**列出剩余额度、剩余比例条、已用和今日花费。同一个厂商**同时提供 Coding Plan（订阅套餐）和 API 按量**时，点右侧的小圆点在两种口径间切换；没有开放余额接口的厂商自动退化成 **DSH 本地实测用量**；再配一个 GitHub 贡献墙样式的 **Token 热力图看板**。样式全部用官方设计令牌，克制内敛。
 
 > 为什么做这个：DeepSeek 涨价后你想切智谱等平台，但原插件写死只查 DeepSeek。现在它是**平台适配器注册表 + 双模式 + 本地实测**，配了哪个 key 就显示哪个，DSH 里接了哪个 provider 也自动补一行，不写死。
 
