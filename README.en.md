@@ -14,7 +14,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Feature | How |
 |---|---|
 | Stacked providers | One row per provider (name + remaining + ratio bar + spent), stacking with however many you configure |
-| **Coding Plan / API switch** | A mode dot per row (green = Coding Plan / grey = API) opening a popover; the click writes config and the same reply carries the new snapshot — no file editing, no restart |
+| **Coding Plan / API switch** | A mode dot per row (green = Coding Plan / grey = API) opening a popover; the click writes config and the same reply carries the new snapshot, with no file editing and no restart |
 | **Follows dsh's own providers** | Reads `llm-pi-ai.providers` from `settings.yaml`: every connected provider gets a row (baseUrl -> vendor lookup, baseUrl -> mode inference) |
 | **Local measurement** | No billing API (Zhipu API mode, b.ai, DashScope, Volcano, Xiaomi...)? The row shows tokens/requests actually measured from dsh session logs instead of lying or going blank |
 | **Token activity dashboard** | 5 stat cards (total / peak / longest chat / current streak / longest streak) + a 52-week **daily token heatmap** with `Daily / Weekly / Cumulative` toggle, plus per-provider and per-model tables |
@@ -119,7 +119,7 @@ Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`):
 
 ## Token activity dashboard
 
-Open it with the `Token activity` button. Everything is computed **locally** from `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]` — no vendor call — so even the local-measurement providers have data.
+Open it with the `Token activity` button. Everything is computed **locally** from `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]` with no vendor call, so even the local-measurement providers have data.
 
 - **Total tokens**: input + output across all sessions (cache-read appears only in the tooltip/footnote; reasoning is never counted)
 - **Peak day**: highest single-day total, with its date
