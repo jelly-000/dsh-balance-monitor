@@ -3,34 +3,34 @@
 
 # dsh-balance-monitor
 
-Multi-provider AI account balance, quota, and token usage in the dsh sidebar, plus a daily token heatmap.
+dsh-balance-monitor is a [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin that shows balance, quota, and usage across multiple AI providers in the sidebar footer, together with a token heatmap driven by local session logs.
 
-A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) plugin: the sidebar footer (above Settings) stacks one row per provider with remaining credit, a ratio bar and today's spend. When a vendor sells **both a Coding Plan and pay-as-you-go API**, a dot on the row switches the reading between them. Vendors without a billing API fall back to **measured DSH usage**. A GitHub-contribution-style **daily token heatmap** sits below. Everything uses the official design tokens.
+The plugin stacks one row per provider, showing remaining credit, a ratio bar, usage, and today's spend. When a vendor offers both Coding Plan (subscription) and pay-as-you-go API billing, a mode dot on the row switches the reading between the two. Vendors without a balance or billing API automatically fall back to measured DSH usage. The interface uses the official design tokens and stays restrained.
 
-> Why: DeepSeek got pricier and you want to move to GLM & friends, but the original plugin was hard-wired to DeepSeek. This is a **provider adapter registry + dual mode + local measurement**: whatever key you configured shows up, and whatever provider dsh is actually pointed at gets its own row.
+> Background: after DeepSeek raised prices, users may need to move to platforms such as Zhipu, while the original plugin supported only DeepSeek. This plugin is built around a provider adapter registry: it dynamically binds to every configured vendor and automatically includes any provider already connected to dsh.
 
 ## Features
 
-| Feature | How |
+| Feature | Description |
 |---|---|
-| Stacked providers | One row per provider (name + remaining + ratio bar + spent), stacking with however many you configure |
-| **Coding Plan / API switch** | A mode dot per row (green = Coding Plan / grey = API) opening a popover; the click writes config and the same reply carries the new snapshot, with no file editing and no restart |
-| **Follows dsh's own providers** | Reads `llm-pi-ai.providers` from `settings.yaml`: every connected provider gets a row (baseUrl -> vendor lookup, baseUrl -> mode inference) |
-| **Local measurement** | No billing API (Zhipu API mode, b.ai, DashScope, Volcano, Xiaomi...)? The row shows tokens/requests actually measured from dsh session logs instead of lying or going blank |
-| **Token activity dashboard** | 5 stat cards (total / peak / longest chat / current streak / longest streak) + a 52-week **daily token heatmap** with `Daily / Weekly / Cumulative` toggle, plus per-provider and per-model tables |
-| Three adapter kinds | **balance**, **quota** (rolling windows, one bar each), **cost** (30-day spend), plus **local** |
-| Quota shows the binding window | The headline is the *tightest* window, not the shortest: a fresh 5-hour window with a spent weekly one reads 0% and counts down to the weekly reset |
-| Today's spend | Day-baseline ledger per `provider:mode`; top-ups never make the number negative |
-| Generic custom provider | An agent calls `balance_monitor`'s `addCustom` (Base URL + path + field mapping), or write `$DSH_HOME/.credentials.yaml` directly; no hand-filled Settings panel |
-| Collapsed rail | At 36px the card becomes one coloured dot per provider, hover tooltip lists name + value + active mode |
-| Position | Official `sidebar.footer.action` slot, above Settings |
-| Robustness | 60s poll + refresh on tab focus; upstream failures keep the last values (dimmed as stale) instead of flashing an error |
-| Bilingual | Follows the dsh UI language (`navigator.language`), zh/en automatically |
-| Safety | Keys stay server-side; the browser only ever receives numeric snapshots |
+| Stacked providers | One row per provider (name, balance, ratio bar, usage), stacked in a single card |
+| **Coding Plan / API switch** | A mode dot per row (green = Coding Plan, grey = pay-as-you-go) opens a popover; switching writes the config and returns a new snapshot immediately, with no file editing |
+| **Follows dsh providers** | Reads `llm-pi-ai.providers` from `settings.yaml`, adds every connected provider, and infers the vendor and billing mode from the base URL |
+| **Local measurement** | Vendors without a balance endpoint (Zhipu API, b.ai, DashScope, Volcano Ark, Xiaomi, etc.) show tokens / requests measured from DSH session logs |
+| **Token activity dashboard** | 5 stat cards (total, peak, longest session, current streak, longest streak) + a 52-week daily token heatmap with Daily / Weekly / Cumulative toggle, plus per-provider and per-model tables |
+| Adapter kinds | **balance** (live balance), **quota** (rolling-window quota, one bar per window), **cost** (30-day spend); plus **local** |
+| Quota shows the binding window | The headline is the tightest window, not the shortest: a fresh 5-hour window with a full weekly one reads 0% and counts down to the weekly reset |
+| Today's spend | Day-baseline ledger per `provider:mode`; top-ups never make the figure negative |
+| Generic custom provider | An agent calls `balance_monitor`'s `addCustom` (Base URL + path + field mapping), or write to `$DSH_HOME/.credentials.yaml` directly |
+| Collapsed rail | At 36px the card becomes one colored dot per provider; hover tooltip lists name, value, and active mode |
+| Position | Registered in the official `sidebar.footer.action` slot, above Settings |
+| Robustness | 60-second polling plus refresh on tab focus; upstream failures keep the last values (dimmed as stale) instead of flashing an error |
+| Bilingual | Follows the dsh UI language (`navigator.language`), zh / en automatically |
+| Safety | API keys stay server-side; the browser only ever receives numeric snapshots |
 
 ## Supported providers
 
-14 built in (ordered by how commonly they are wired into dsh here); each declares its **modes**, one key serving both:
+14 built-in vendors, each declaring its supported billing modes; one key serves both modes, and switching only changes the reading shown:
 
 | id | Label | Env key | Modes |
 |---|---|---|---|
@@ -46,62 +46,62 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | siliconflow | SiliconFlow | `SILICONFLOW_API_KEY` | API balance (¥) |
 | openrouter | OpenRouter | `OPENROUTER_API_KEY` | API credits ($) |
 | xai | xAI (Grok) | `XAI_API_KEY` | API credits ($) |
-| openai | OpenAI | `OPENAI_API_KEY` | API 30-day cost ($) |
-| anthropic | Anthropic | `ANTHROPIC_API_KEY` | API 30-day cost ($, Admin key) |
+| openai | OpenAI | `OPENAI_API_KEY` | API 30-day spend ($) |
+| anthropic | Anthropic | `ANTHROPIC_API_KEY` | API 30-day spend ($) (needs Admin key) |
 
-Findings from probing these APIs (so you don't have to):
+## Billing API notes
 
-- **Zhipu exposes no balance endpoint** (`/api/biz/balance/query` -> "request address not allowed", everything else 404), so API mode is measured locally; Coding Plan mode uses `/api/monitor/usage/quota/limit`, keyed on `unit` (3 = 5h, 2 = day, 1 = month, 6 = week) across `TOKENS_LIMIT / CREDIT_LIMIT / TIME_LIMIT`.
-- **b.ai has no billing API** at all (every path -> `403 HTTP node only allows access to inference API paths`); it auto-registers as a `dsh:b-ai` local row.
-- MiniMax `/coding_plan/remains` demands cookies; `/v1/token_plan/remains` accepts Bearer, so that is the one wired in.
-- A negative balance (overdrawn) is shown as-is with the bar suppressed.
+Measured behavior of each vendor's billing endpoint, for reference during configuration:
 
-## Switching Coding Plan / API
+- **Zhipu** has no public balance endpoint (`/api/biz/balance/query` is refused; the rest return 404), so API mode uses local measurement. Coding Plan mode uses `/api/monitor/usage/quota/limit`, reads the window from `unit` (3 = 5 hour, 2 = day, 1 = month, 6 = week), and supports `TOKENS_LIMIT / CREDIT_LIMIT / TIME_LIMIT`.
+- **b.ai** has no billing endpoint (always `403 HTTP node only allows access to inference API paths`), so it auto-registers as a `dsh:b-ai` local-measurement row.
+- **MiniMax**: `/coding_plan/remains` requires a cookie; `/v1/token_plan/remains` accepts Bearer. The plugin uses the latter.
+- **Negative balance**: when the balance is negative (in arrears), the plugin skips the ratio bar but still shows the number.
 
-Click the mode dot in a row (green = Coding Plan / grey = API), then pick from the popover:
+## Coding Plan / API switch
 
-1. the browser sends `{action:'setMode', id, mode}` on `/balances`;
-2. the host writes `platforms.<id>.mode` into `$DSH_HOME/balance-monitor.config.json`;
-3. the reply is a fresh snapshot, so the card updates on the spot.
+Click the mode dot on a row (green = Coding Plan, grey = pay-as-you-go) and choose from the popover:
 
-Mode precedence: **your override > inference from dsh's baseUrl (`/coding`, `/paas/coding`, `anthropic` -> Coding Plan, else API) > first non-local mode with a key**.
+1. The browser sends `{action:'setMode', id, mode}` to `/balances`;
+2. The host writes `platforms.<id>.mode` in `$DSH_HOME/balance-monitor.config.json`;
+3. The endpoint returns a new snapshot immediately and the card updates in place, with no restart or refresh.
+
+Mode precedence: **manual override > inference from the dsh base URL (`/coding`, `/paas/coding`, `anthropic` are treated as subscription, the rest as usage-based) > the vendor's first non-local mode with a configured key**.
 
 ## Configuring keys
 
-**No config file needed**: a provider appears once it has a key, and every provider dsh is pointed at gets a row too. Keys come from the environment first, else `$DSH_HOME/.credentials.yaml`:
+No extra configuration file is required: vendors with a key are shown automatically, and providers already connected to dsh are added too. Keys are read from environment variables first, then from `$DSH_HOME/.credentials.yaml`:
 
 ```yaml
-# $DSH_HOME/.credentials.yaml
+# `$DSH_HOME/.credentials.yaml`
 DEEPSEEK_API_KEY: sk-xxxx
 ZHIPU_API_KEY: xxxx
 MOONSHOT_API_KEY: sk-yyyy
 ```
 
-Environment wins: `ZHIPU_API_KEY=xxxx dsh --profile web ...`.
+Environment variables take precedence: `ZHIPU_API_KEY=xxxx dsh --profile web ...`.
 
-## Generic custom provider
+## Generic custom providers
 
-An agent calls the `balance_monitor` tool's `addCustom` for any OpenAI-compatible gateway or reverse proxy (fields below):
+An agent calls `balance_monitor`'s `addCustom` to connect any OpenAI-compatible gateway / reverse proxy / small vendor (written only to config; fields below):
 
-| Field | Meaning |
+| Field | Description |
 |---|---|
-| `label` | row label (id derived from it) |
+| `label` | Display name on the card (id is auto-generated) |
 | `baseUrl` | e.g. `https://gateway.example.com` |
-| `path` | defaults to `/v1/user/balance` |
-| `auth` | `bearer` (default) / `raw` (verbatim Authorization) / `x-api-key` |
-| `kind` | balance (money bar) / quota (percentage windows) |
-| `currency` / `modeLabel` | display currency / mode name |
-| `keyEnv` | which env / `.credentials.yaml` entry to read; empty -> auto-derived `NAME_API_KEY` from `label` |
-| `apiKey` | written straight into `$DSH_HOME/.credentials.yaml` (server-side only, never echoed) |
-| `pick` | field mapping for remaining / total / resetAt, e.g. `data.balance` |
+| `path` | default `/v1/user/balance` |
+| `auth` | `bearer` (default) / `raw` (written verbatim into Authorization) / `x-api-key` |
+| `kind` | balance (balance bar) / quota (quota percentage window) |
+| `currency` / `modeLabel` | currency / mode name |
+| `keyEnv` | the env / `.credentials.yaml` entry to read; if empty, `XXX_API_KEY` is derived from `label` |
+| `apiKey` | written straight into `$DSH_HOME/.credentials.yaml` (host-only, never echoed) |
+| `pick` | value mapping: remaining / total / reset-time paths, e.g. `data.balance` |
 
-If the mapping yields no number the row says so rather than showing a silent 0.
+If the mapping cannot resolve a value, the plugin reports "mapping did not resolve a value; check the field path (e.g. data.balance)" instead of silently showing 0.
 
-Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`): prefixes are not standardised. DeepSeek's own response has no `data` wrapper, so the path is `balance_infos.0.total_balance`. Paths split on `.`, array indices are written as numbers.
+Before configuring, inspect the real response with `curl -H "Authorization: Bearer $KEY" <base><path>`: prefixes vary across vendors. For example, DeepSeek's response has no `data` wrapper, and the correct path is `balance_infos.0.total_balance` (paths use `.` as a separator; array indices are written as plain numbers).
 
 ## Optional config
-
-`$DSH_HOME/balance-monitor.config.json` (the panels write it for you; hand-editing is fine too):
 
 ```json
 {
@@ -111,7 +111,7 @@ Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`):
   },
   "custom": [
     { "id": "custom-mygateway", "label": "My gateway", "baseUrl": "https://gw.example.com",
-      "path": "/v1/user/balance", "auth": "bearer", "kind": "balance", "currency": "USD",
+      "path": "/v1/user/balance", "auth": "bearer", "kind": "balance", "currency": "CNY",
       "pick": { "remaining": "balance", "total": "total_balance", "resetAt": "" } }
   ]
 }
@@ -119,34 +119,34 @@ Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`):
 
 ## Token activity dashboard
 
-Open it with the `Token activity` button. Everything is computed **locally** from `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]` with no vendor call, so even the local-measurement providers have data.
+Open the `▦ Token activity` dashboard. All data comes from local `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]`, and no vendor endpoint is called, so local-measurement providers have data too.
 
-- **Total tokens**: input + output across all sessions (cache-read appears only in the tooltip/footnote; reasoning is never counted)
-- **Peak day**: highest single-day total, with its date
-- **Longest chat**: longest continuous stretch (a > 30 min gap between events ends it, so an idle overnight session is not a chat)
+- **Total tokens**: the sum of in + out across all sessions (cache reads are counted only in tooltips/footnotes; reasoning tokens are excluded; `亿` / `万` Chinese counting)
+- **Peak tokens**: the highest single-day value, with its date
+- **Longest session**: the longest continuous conversation (adjacent events more than 30 minutes apart are treated as disconnected, so idle overnight sessions are not counted)
 - **Current / longest streak**: consecutive active days
-- **Heatmap**: 52 GitHub-style weeks (about a year), Monday-aligned, month + weekday axes, `sqrt`-scaled 5-level colour, `Daily / Weekly / Cumulative` metric toggle, per-cell tooltip with tokens / requests / turns / duration
+- **Heatmap**: a 52-week (about one year) GitHub-style contribution grid, aligned to Mondays, with month and weekday axes, colored by `sqrt` into 5 levels; Daily / Weekly / Cumulative toggle, and per-cell tooltips showing that day's tokens / requests / turns / duration
 
-Implementation note: dsh's `.zstd` files are **concatenated frames** and `zstdDecompressSync` stops after frame one, so the scanner splits on the `28 B5 2F FD` magic and inflates each frame (32621 frames, 0 failures). Per-file `size + mtimeMs` fingerprints are cached in `$DSH_HOME/storages/balance-monitor-usage.json`: ~2s cold, ~300ms warm, and after a restart the cached summary paints instantly while a rescan runs behind it.
+Parsing notes: dsh's `.zstd` files are a multi-frame concatenated stream, and `zstdDecompressSync` decodes only the first frame; the plugin splits frames by the `28 B5 2F FD` magic and decodes each before concatenating (tested over 32,621 frames with 0 failures). Fingerprint caching uses `size + mtimeMs` (`$DSH_HOME/storages/balance-monitor-usage.json`): about 2 s cold scan, about 300 ms hit; after a restart it opens instantly from the cached digest and rescans in the background.
 
-## Install
+## Installation
 
-The browser bundle is a hand-written classic script with **no build step**:
+The browser bundle is a hand-written classic script with no build step:
 
 ```sh
 dsh plugin --profile web add "github:<you>/dsh-balance-monitor#main"
 ```
 
-Then restart the Web UI (`dsh --profile web`). Editing `lib/client.js` only needs a page refresh; `index.js` / `providers.js` / `usage.js` need a dsh restart.
+Then restart the Web UI (`dsh --profile web`). Editing `lib/client.js` only requires a page refresh; editing `lib/index.js` / `providers.js` / `usage.js` requires a dsh restart.
 
 ## How it works
 
-- **Host half** `lib/index.js`: registers the `/balances` RPC channel (loopback trust fence) with actions `snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage`; every mutation returns a fresh snapshot.
-- **Registry** `lib/providers.js`: vendor x mode x parser, plus `matchVendor(baseUrl)` and `inferMode(baseUrl)`.
-- **Usage scanner** `lib/usage.js`: session logs -> per-day / per-provider / per-model aggregates, streaks, heatmap series.
-- **Client half** `lib/client.js`: sidebar card (wide + rail), mode dot, and two floating panels (dashboard / settings) whose open state lives in `sessionStorage`.
+- **Host** `lib/index.js`: registers the `/balances` RPC channel (loopback trust fence), with `snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage` actions; every write returns a new snapshot immediately.
+- **Adapter registry** `lib/providers.js`: vendor × mode × parser, including `matchVendor(baseUrl)` and `inferMode(baseUrl)`.
+- **Usage scan** `lib/usage.js`: scans session logs, aggregates by day / vendor / model, and produces streaks and heatmap data.
+- **Browser** `lib/client.js`: sidebar card (expanded / collapsed) + the Token activity dashboard panel; panel open/close state is kept in `sessionStorage` so it survives a refresh.
 
-The day-baseline ledger (`$DSH_HOME/storages/balance-monitor.json`) is keyed by `provider:mode`, so switching modes does not poison the other mode's "today":
+The daily-baseline ledger (`$DSH_HOME/storages/balance-monitor.json`) is keyed by `provider:mode`, so switching modes never contaminates the other reading's "spent today":
 
 ```json
 {
@@ -157,7 +157,7 @@ The day-baseline ledger (`$DSH_HOME/storages/balance-monitor.json`) is keyed by 
 
 ## Security
 
-- API keys never leave the host: the browser only sees numeric snapshots over RPC.
+- API keys never leave the host; the browser only sees numeric snapshots over RPC.
 - The channel uses the `loopback` trust policy.
 - No telemetry; network traffic is only the official balance/quota/cost endpoints, plus local session-log reads.
 
@@ -176,7 +176,7 @@ dsh-balance-monitor/
 
 ## Development
 
-No toolchain. After editing, `node --check lib/*.js` (`client.js` is a classic script, so keep ESM syntax out of it).
+No toolchain. After editing, run `node --check lib/*.js` (`client.js` is a classic script, so keep ESM syntax out of it).
 
 ## License
 
