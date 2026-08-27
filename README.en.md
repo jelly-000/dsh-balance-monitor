@@ -18,7 +18,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | **Follows dsh's own providers** | Reads `llm-pi-ai.providers` from `settings.yaml`: every connected provider gets a row (baseUrl -> vendor lookup, baseUrl -> mode inference) |
 | **Local measurement** | No billing API (Zhipu API mode, b.ai, DashScope, Volcano, Xiaomi...)? The row shows tokens/requests actually measured from dsh session logs instead of lying or going blank |
 | **Token activity dashboard** | 5 stat cards (total / peak / longest chat / current streak / longest streak) + a 52-week **daily token heatmap** with `Daily / Weekly / Cumulative` toggle, plus per-provider and per-model tables |
-| Three adapter kinds | **balance**, **quota** (rolling windows, one bar each), **cost** (30-day spend) — plus **local** |
+| Three adapter kinds | **balance**, **quota** (rolling windows, one bar each), **cost** (30-day spend), plus **local** |
 | Quota shows the binding window | The headline is the *tightest* window, not the shortest: a fresh 5-hour window with a spent weekly one reads 0% and counts down to the weekly reset |
 | Today's spend | Day-baseline ledger per `provider:mode`; top-ups never make the number negative |
 | Generic custom provider | An agent calls `balance_monitor`'s `addCustom` (Base URL + path + field mapping), or write `$DSH_HOME/.credentials.yaml` directly; no hand-filled Settings panel |
@@ -53,7 +53,7 @@ Findings from probing these APIs (so you don't have to):
 
 - **Zhipu exposes no balance endpoint** (`/api/biz/balance/query` -> "request address not allowed", everything else 404), so API mode is measured locally; Coding Plan mode uses `/api/monitor/usage/quota/limit`, keyed on `unit` (3 = 5h, 2 = day, 1 = month, 6 = week) across `TOKENS_LIMIT / CREDIT_LIMIT / TIME_LIMIT`.
 - **b.ai has no billing API** at all (every path -> `403 HTTP node only allows access to inference API paths`); it auto-registers as a `dsh:b-ai` local row.
-- MiniMax `/coding_plan/remains` demands cookies; `/v1/token_plan/remains` accepts Bearer — that is the one wired in.
+- MiniMax `/coding_plan/remains` demands cookies; `/v1/token_plan/remains` accepts Bearer, so that is the one wired in.
 - A negative balance (overdrawn) is shown as-is with the bar suppressed.
 
 ## Switching Coding Plan / API
@@ -97,7 +97,7 @@ An agent calls the `balance_monitor` tool's `addCustom` for any OpenAI-compatibl
 
 If the mapping yields no number the row says so rather than showing a silent 0.
 
-Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`): prefixes are not standardised — DeepSeek's own response has no `data` wrapper, so the path is `balance_infos.0.total_balance`. Paths split on `.`, array indices are written as numbers.
+Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`): prefixes are not standardised. DeepSeek's own response has no `data` wrapper, so the path is `balance_infos.0.total_balance`. Paths split on `.`, array indices are written as numbers.
 
 ## Optional config
 
@@ -121,17 +121,17 @@ Check the real JSON first (`curl -H "Authorization: Bearer $KEY" <base><path>`):
 
 Open it with the `Token activity` button. Everything is computed **locally** from `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]` — no vendor call — so even the local-measurement providers have data.
 
-- **Total tokens** — input + output across all sessions (cache-read appears only in the tooltip/footnote; reasoning is never counted)
-- **Peak day** — highest single-day total, with its date
-- **Longest chat** — longest continuous stretch (a > 30 min gap between events ends it, so an idle overnight session is not a chat)
-- **Current / longest streak** — consecutive active days
-- **Heatmap** — 52 GitHub-style weeks (about a year), Monday-aligned, month + weekday axes, `sqrt`-scaled 5-level colour, `Daily / Weekly / Cumulative` metric toggle, per-cell tooltip with tokens / requests / turns / duration
+- **Total tokens**: input + output across all sessions (cache-read appears only in the tooltip/footnote; reasoning is never counted)
+- **Peak day**: highest single-day total, with its date
+- **Longest chat**: longest continuous stretch (a > 30 min gap between events ends it, so an idle overnight session is not a chat)
+- **Current / longest streak**: consecutive active days
+- **Heatmap**: 52 GitHub-style weeks (about a year), Monday-aligned, month + weekday axes, `sqrt`-scaled 5-level colour, `Daily / Weekly / Cumulative` metric toggle, per-cell tooltip with tokens / requests / turns / duration
 
-Implementation note: dsh's `.zstd` files are **concatenated frames** and `zstdDecompressSync` stops after frame one — the scanner splits on the `28 B5 2F FD` magic and inflates each frame (32621 frames, 0 failures). Per-file `size + mtimeMs` fingerprints are cached in `$DSH_HOME/storages/balance-monitor-usage.json`: ~2s cold, ~300ms warm, and after a restart the cached summary paints instantly while a rescan runs behind it.
+Implementation note: dsh's `.zstd` files are **concatenated frames** and `zstdDecompressSync` stops after frame one, so the scanner splits on the `28 B5 2F FD` magic and inflates each frame (32621 frames, 0 failures). Per-file `size + mtimeMs` fingerprints are cached in `$DSH_HOME/storages/balance-monitor-usage.json`: ~2s cold, ~300ms warm, and after a restart the cached summary paints instantly while a rescan runs behind it.
 
 ## Install
 
-The browser bundle is a hand-written classic script — **no build step**:
+The browser bundle is a hand-written classic script with **no build step**:
 
 ```sh
 dsh plugin --profile web add "github:<you>/dsh-balance-monitor#main"
@@ -141,10 +141,10 @@ Then restart the Web UI (`dsh --profile web`). Editing `lib/client.js` only need
 
 ## How it works
 
-- **Host half** `lib/index.js` — registers the `/balances` RPC channel (loopback trust fence) with actions `snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage`; every mutation returns a fresh snapshot.
-- **Registry** `lib/providers.js` — vendor x mode x parser, plus `matchVendor(baseUrl)` and `inferMode(baseUrl)`.
-- **Usage scanner** `lib/usage.js` — session logs -> per-day / per-provider / per-model aggregates, streaks, heatmap series.
-- **Client half** `lib/client.js` — sidebar card (wide + rail), mode dot, and two floating panels (dashboard / settings) whose open state lives in `sessionStorage`.
+- **Host half** `lib/index.js`: registers the `/balances` RPC channel (loopback trust fence) with actions `snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage`; every mutation returns a fresh snapshot.
+- **Registry** `lib/providers.js`: vendor x mode x parser, plus `matchVendor(baseUrl)` and `inferMode(baseUrl)`.
+- **Usage scanner** `lib/usage.js`: session logs -> per-day / per-provider / per-model aggregates, streaks, heatmap series.
+- **Client half** `lib/client.js`: sidebar card (wide + rail), mode dot, and two floating panels (dashboard / settings) whose open state lives in `sessionStorage`.
 
 The day-baseline ledger (`$DSH_HOME/storages/balance-monitor.json`) is keyed by `provider:mode`, so switching modes does not poison the other mode's "today":
 
@@ -176,7 +176,7 @@ dsh-balance-monitor/
 
 ## Development
 
-No toolchain. After editing, `node --check lib/*.js` (`client.js` is a classic script — keep ESM syntax out of it).
+No toolchain. After editing, `node --check lib/*.js` (`client.js` is a classic script, so keep ESM syntax out of it).
 
 ## License
 

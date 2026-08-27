@@ -53,7 +53,7 @@
 
 - **智谱没有开放的余额接口**（`/api/biz/balance/query` 直接「请求地址不允许访问」，其余 404），所以 API 模式走本地实测；Coding Plan 模式走 `/api/monitor/usage/quota/limit`，按 `unit` 认窗口（3=5h、2=日、1=月、6=周），`TOKENS_LIMIT / CREDIT_LIMIT / TIME_LIMIT` 三种限额都吃。
 - **b.ai 没有计费接口**（一律 `403 HTTP node only allows access to inference API paths`），会自动注册成 `dsh:b-ai` 本地实测行。
-- MiniMax 的 `/coding_plan/remains` 要 cookie，`/v1/token_plan/remains` 才吃 Bearer —— 内置的是后者。
+- MiniMax 的 `/coding_plan/remains` 要 cookie，`/v1/token_plan/remains` 才吃 Bearer，内置的是后者。
 - 余额为负（欠费）时不画进度条，数字照实显示。
 
 ## Coding Plan / API 切换
@@ -121,13 +121,13 @@ MOONSHOT_API_KEY: sk-yyyy
 
 `▦ Token 活动` 打开。数据**全部来自本地** `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]`，不查任何厂商接口，所以「本地实测」型平台也有数。
 
-- **累计 Token 数** —— 全部会话的 in + out 之和（缓存读只进 tooltip/脚注，推理不计入；`亿`/`万` 中文计数）
-- **峰值 Token 数** —— 单日最高，标注日期
-- **最长聊天时长** —— 单次连续对话最长时长（相邻事件间隔 > 30min 断开，避免把跨天挂机算成聊天）
-- **当前 / 最长连续天数** —— 打卡式 streak
-- **热力图** —— 52 周（约一年）GitHub 贡献墙，周一对齐，月份轴 + 星期轴，颜色按 `sqrt` 分 5 档；`每日 / 每周 / 累计` 切换度量，格子 tooltip 给当天 tokens / 请求 / 轮次 / 时长
+- **累计 Token 数**：全部会话的 in + out 之和（缓存读只进 tooltip/脚注，推理不计入；`亿`/`万` 中文计数）
+- **峰值 Token 数**：单日最高，标注日期
+- **最长聊天时长**：单次连续对话最长时长（相邻事件间隔 > 30min 断开，避免把跨天挂机算成聊天）
+- **当前 / 最长连续天数**：打卡式 streak
+- **热力图**：52 周（约一年）GitHub 贡献墙，周一对齐，月份轴 + 星期轴，颜色按 `sqrt` 分 5 档；`每日 / 每周 / 累计` 切换度量，格子 tooltip 给当天 tokens / 请求 / 轮次 / 时长
 
-解析要点：dsh 的 `.zstd` 是**多帧拼接**流，`zstdDecompressSync` 只会解出第一帧 —— 这里按 magic `28 B5 2F FD` 切帧逐帧解压再拼接（实测 32621 帧 0 失败）。按 `size + mtimeMs` 做指纹缓存（`$DSH_HOME/storages/balance-monitor-usage.json`），冷扫 ~2s、命中 ~300ms；重启后先用缓存摘要秒开，再后台重扫。
+解析要点：dsh 的 `.zstd` 是**多帧拼接**流，`zstdDecompressSync` 只会解出第一帧，这里按 magic `28 B5 2F FD` 切帧逐帧解压再拼接（实测 32621 帧 0 失败）。按 `size + mtimeMs` 做指纹缓存（`$DSH_HOME/storages/balance-monitor-usage.json`），冷扫 ~2s、命中 ~300ms；重启后先用缓存摘要秒开，再后台重扫。
 
 ## 安装
 
@@ -141,10 +141,10 @@ dsh plugin --profile web add "github:<you>/dsh-balance-monitor#main"
 
 ## 工作原理
 
-- **服务端半** `lib/index.js` —— 注册 `/balances` RPC 通道（loopback 信任围栏）。动作：`snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage`；所有写操作直接返回新快照。
-- **适配器注册表** `lib/providers.js` —— 厂商 × 模式 × 解析器，含 `matchVendor(baseUrl)` 与 `inferMode(baseUrl)`。
-- **用量扫描** `lib/usage.js` —— 会话日志 → 按日/厂商/模型聚合 + 连续天数 + 热力图数据。
-- **浏览器半** `lib/client.js` —— 侧边栏卡片（展开/收起两态）+ 两个浮层面板（活动看板 / 设置），面板开关状态存 `sessionStorage`，刷新不丢。
+- **服务端半** `lib/index.js`：注册 `/balances` RPC 通道（loopback 信任围栏）。动作：`snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage`；所有写操作直接返回新快照。
+- **适配器注册表** `lib/providers.js`：厂商 × 模式 × 解析器，含 `matchVendor(baseUrl)` 与 `inferMode(baseUrl)`。
+- **用量扫描** `lib/usage.js`：会话日志 → 按日/厂商/模型聚合 + 连续天数 + 热力图数据。
+- **浏览器半** `lib/client.js`：侧边栏卡片（展开/收起两态）+ 两个浮层面板（活动看板 / 设置），面板开关状态存 `sessionStorage`，刷新不丢。
 
 每日基线账本（`$DSH_HOME/storages/balance-monitor.json`）按 `平台id:模式` 记账，切换模式不会污染对方的「今日已用」：
 
