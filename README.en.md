@@ -14,7 +14,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Feature | How |
 |---|---|
 | Stacked providers | One row per provider (name + remaining + ratio bar + spent), stacking with however many you configure |
-| **Coding Plan <-> API one-click switch** | A mode dot per row (green = Coding Plan / grey = API) opening a popover; the click writes config and the same reply carries the new snapshot — no file editing, no restart |
+| **Coding Plan / API switch** | A mode dot per row (green = Coding Plan / grey = API) opening a popover; the click writes config and the same reply carries the new snapshot — no file editing, no restart |
 | **Follows dsh's own providers** | Reads `llm-pi-ai.providers` from `settings.yaml`: every connected provider gets a row (baseUrl -> vendor lookup, baseUrl -> mode inference) |
 | **Local measurement** | No billing API (Zhipu API mode, b.ai, DashScope, Volcano, Xiaomi...)? The row shows tokens/requests actually measured from dsh session logs instead of lying or going blank |
 | **Token activity dashboard** | 5 stat cards (total / peak / longest chat / current streak / longest streak) + a 52-week **daily token heatmap** with `Daily / Weekly / Cumulative` toggle, plus per-provider and per-model tables |
@@ -23,7 +23,7 @@ A minimal [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (d
 | Today's spend | Day-baseline ledger per `provider:mode`; top-ups never make the number negative |
 | Generic custom provider | An agent calls `balance_monitor`'s `addCustom` (Base URL + path + field mapping), or write `$DSH_HOME/.credentials.yaml` directly; no hand-filled Settings panel |
 | Collapsed rail | At 36px the card becomes one coloured dot per provider, hover tooltip lists name + value + active mode |
-| Position | Official `sidebar.footer.action` slot — above Settings, zero hacks |
+| Position | Official `sidebar.footer.action` slot, above Settings |
 | Robustness | 60s poll + refresh on tab focus; upstream failures keep the last values (dimmed as stale) instead of flashing an error |
 | Bilingual | Follows the dsh UI language (`navigator.language`), zh/en automatically |
 | Safety | Keys stay server-side; the browser only ever receives numeric snapshots |
@@ -144,7 +144,7 @@ Then restart the Web UI (`dsh --profile web`). Editing `lib/client.js` only need
 - **Host half** `lib/index.js` — registers the `/balances` RPC channel (loopback trust fence) with actions `snapshot` / `setMode` / `setEnabled` / `setLabel` / `saveCustom` / `removeCustom` / `usage`; every mutation returns a fresh snapshot.
 - **Registry** `lib/providers.js` — vendor x mode x parser, plus `matchVendor(baseUrl)` and `inferMode(baseUrl)`.
 - **Usage scanner** `lib/usage.js` — session logs -> per-day / per-provider / per-model aggregates, streaks, heatmap series.
-- **Client half** `lib/client.js` — sidebar card (wide + rail), mode chips, and two floating panels (dashboard / settings) whose open state lives in `sessionStorage`.
+- **Client half** `lib/client.js` — sidebar card (wide + rail), mode dot, and two floating panels (dashboard / settings) whose open state lives in `sessionStorage`.
 
 The day-baseline ledger (`$DSH_HOME/storages/balance-monitor.json`) is keyed by `provider:mode`, so switching modes does not poison the other mode's "today":
 
@@ -171,7 +171,7 @@ dsh-balance-monitor/
     ├── index.js        # host: /balances channel, config + ledger, row assembly
     ├── providers.js    # provider adapter registry (modes, auth, parsers)
     ├── usage.js        # session-log scanner -> daily tokens / duration / streaks
-    └── client.js       # browser: card, mode chips, heatmap dashboard, settings (no build)
+    └── client.js       # browser: card, mode dot/popover, heatmap dashboard (no build)
 ```
 
 ## Development

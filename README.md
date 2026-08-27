@@ -14,7 +14,7 @@
 | 功能 | 实现 |
 |---|---|
 | 多平台堆叠 | 一张卡片自上而下每平台一行（名字 + 剩余 + 比例条 + 已用），随配置自然堆叠 |
-| **Coding Plan ↔ API 一键切换** | 每行模式小圆点（绿 = Coding Plan / 灰 = API 按量），点开浮层菜单即切，写进 config 并立刻返回新快照；不用手改任何文件 |
+| **Coding Plan / API 切换** | 每行模式小圆点（绿 = Coding Plan / 灰 = API 按量），点开浮层菜单即切，写进 config 并立刻返回新快照；不用手改任何文件 |
 | **自动跟随 DSH** | 读 `settings.yaml` 的 `llm-pi-ai.providers`：接了哪个 provider 就自动补一行（含 baseUrl 反查厂商、自动推断该显示套餐还是按量） |
 | **本地实测用量** | 厂商没开放余额接口（智谱 API、b.ai、百炼、方舟、小米…）时，该行改显示 DSH 会话日志里实测的 token / 请求数，不撒谎也不空白 |
 | **Token 活动看板** | 5 张统计卡（累计 / 峰值 / 最长聊天时长 / 当前连续天数 / 最长连续天数）+ 52 周**每日 token 热力图**，`每日 / 每周 / 累计` 三档切换，附厂商与模型明细表 |
@@ -56,7 +56,7 @@
 - MiniMax 的 `/coding_plan/remains` 要 cookie，`/v1/token_plan/remains` 才吃 Bearer —— 内置的是后者。
 - 余额为负（欠费）时不画进度条，数字照实显示。
 
-## 一键切换 Coding Plan / API
+## Coding Plan / API 切换
 
 点每行右侧的模式小圆点（绿 = Coding Plan / 灰 = API 按量），在浮层菜单里切换：
 
