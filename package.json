@@ -1,7 +1,7 @@
 {
   "name": "dsh-balance-monitor",
   "version": "0.2.1",
-  "description": "Multi-provider AI account balance / quota / usage monitor with one-click Coding Plan <-> API mode switching, local token measurement, a custom-provider form and a daily token heatmap dashboard in the dsh sidebar footer.",
+  "description": "Tracks each configured provider's balance, quota, or local token usage in the dsh sidebar footer. Switch between Coding Plan and API billing, add a custom provider, and view a daily token heatmap.",
   "keywords": [
     "dsh",
     "dsh-plugin",
