@@ -17,7 +17,7 @@ The plugin stacks one row per provider, showing remaining credit, a ratio bar, u
 | **Coding Plan / API switch** | A mode dot per row (green = Coding Plan, grey = pay-as-you-go) opens a popover; switching writes the config and returns a new snapshot immediately, with no file editing |
 | **Follows dsh providers** | Reads `llm-pi-ai.providers` from `settings.yaml`, adds every connected provider, and infers the vendor and billing mode from the base URL |
 | **Local measurement** | Vendors without a balance endpoint (Zhipu API, b.ai, DashScope, Volcano Ark, Xiaomi, etc.) show tokens / requests measured from DSH session logs |
-| **Token activity dashboard** | 5 stat cards (total, peak, longest session, current streak, longest streak) + a 52-week daily token heatmap with Daily / Weekly / Cumulative toggle, plus per-provider and per-model tables |
+| **Token activity dashboard** | stat strip (total, peak, longest chat, current / longest streak) + a 52-week token heatmap with Daily / Weekly / Cumulative toggle + Last 7 / 30 days range with a daily trend chart and model usage card (mirrors ZCode usage stats), with the per-provider table kept at the bottom |
 | Adapter kinds | **balance** (live balance), **quota** (rolling-window quota, one bar per window), **cost** (30-day spend); plus **local** |
 | Quota shows the binding window | The headline is the tightest window, not the shortest: a fresh 5-hour window with a full weekly one reads 0% and counts down to the weekly reset |
 | Today's spend | Day-baseline ledger per `provider:mode`; top-ups never make the figure negative |
@@ -119,15 +119,19 @@ Before configuring, inspect the real response with `curl -H "Authorization: Bear
 
 ## Token activity dashboard
 
-Open the `▦ Token activity` dashboard. All data comes from local `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]`, and no vendor endpoint is called, so local-measurement providers have data too.
+Open the `▦ Token activity` dashboard. All data comes from local `$DSH_HOME/sessions/*/*/session.jsonl[.zstd]`, and no vendor endpoint is called, so local-measurement providers have data too. The layout mirrors the ZCode desktop "Usage stats · App usage" page, rendered with dsh's dual-theme design tokens.
 
-- **Total tokens**: the sum of in + out across all sessions (cache reads are counted only in tooltips/footnotes; reasoning tokens are excluded; `亿` / `万` Chinese counting)
-- **Peak tokens**: the highest single-day value, with its date
-- **Longest session**: the longest continuous conversation (adjacent events more than 30 minutes apart are treated as disconnected, so idle overnight sessions are not counted)
-- **Current / longest streak**: consecutive active days
-- **Heatmap**: a 52-week (about one year) GitHub-style contribution grid, aligned to Mondays, with month and weekday axes, colored by `sqrt` into 5 levels; Daily / Weekly / Cumulative toggle, and per-cell tooltips showing that day's tokens / requests / turns / duration
+![Token activity dashboard](docs/preview/usage-dashboard.png)
 
-Parsing notes: dsh's `.zstd` files are a multi-frame concatenated stream, and `zstdDecompressSync` decodes only the first frame; the plugin splits frames by the `28 B5 2F FD` magic and decodes each before concatenating (tested over 32,621 frames with 0 failures). Fingerprint caching uses `size + mtimeMs` (`$DSH_HOME/storages/balance-monitor-usage.json`): about 2 s cold scan, about 300 ms hit; after a restart it opens instantly from the cached digest and rescans in the background.
+- **Stat strip (5 cells)**: total tokens (in + out across all sessions; cache reads count only in tooltips/footnotes; `亿` / `万` Chinese counting), peak-day tokens, longest chat (adjacent events more than 30 minutes apart are treated as disconnected, so idle overnight sessions are not counted), current / longest streak
+- **Token activity heatmap**: a 52-week (about one year) contribution grid, aligned to Mondays, month axis below the grid, colored by `sqrt` into 5 levels; Daily / Weekly / Cumulative toggle, and per-cell tooltips showing the date, tokens, requests, turns, duration and cache reads
+- **Time range**: Last 7 days / Last 30 days, applied to the trend chart and model usage below
+- **Daily token trend**: hand-written SVG smooth curves (monotone cubic, no overshoot) with gradient area fills for the top 3 models in range; hover shows each model's tokens for the day
+- **Model usage**: top-model share headline plus cache hit rate; a stacked In / Out / Cached / Other-models bar; top 3 model rows (sliced from the server-provided model×day matrix)
+- **Providers table**: tokens / requests / active days per vendor (this plugin's own extra, kept at the bottom)
+- **Footnote**: last refresh time and scope notes (active days / turns / sessions / total chat / cache reads not counted)
+
+Parsing notes: dsh's `.zstd` files are a multi-frame concatenated stream, and `zstdDecompressSync` decodes only the first frame; the plugin splits frames by the `28 B5 2F FD` magic and decodes each before concatenating (tested over 32,621 frames with 0 failures). Fingerprint caching uses `size + mtimeMs` (`$DSH_HOME/storages/balance-monitor-usage.json`): about 2 s cold scan, about 300 ms hit; after a restart it opens instantly from the cached digest and rescans in the background. Since cache version v4 the model dimension carries in/out/cache splits plus a model×day matrix so the client can slice any time range.
 
 ## Installation
 
