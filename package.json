@@ -1,6 +1,6 @@
 {
   "name": "dsh-balance-monitor",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Tracks each configured provider's balance, quota, or local token usage in the dsh sidebar footer. Switch between Coding Plan and API billing, add a custom provider, and view a daily token heatmap.",
   "keywords": [
     "dsh",
